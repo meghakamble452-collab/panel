@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from './lib/api';
 import Icon from './components/Icon';
@@ -708,6 +708,152 @@ function Paid() {
   );
 }
 
+/* ───────────── Date range picker ───────────── */
+
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const fmtDay = s => parseYmd(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const WD = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+function presets() {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const mon = addDays(t, -((t.getDay() + 6) % 7));
+  return [
+    ['Today', t, t],
+    ['Yesterday', addDays(t, -1), addDays(t, -1)],
+    ['Last 7 days', addDays(t, -6), t],
+    ['Last 30 days', addDays(t, -29), t],
+    ['This week', mon, t],
+    ['This month', new Date(t.getFullYear(), t.getMonth(), 1), t],
+    ['Last month', new Date(t.getFullYear(), t.getMonth() - 1, 1), new Date(t.getFullYear(), t.getMonth(), 0)],
+  ].map(([l, a, b]) => [l, ymd(a), ymd(b)]);
+}
+
+function Month({ y, m, from, to, hover, setHover, pick, maxDay }) {
+  const first = new Date(y, m, 1);
+  const lead = (first.getDay() + 6) % 7;
+  const days = new Date(y, m + 1, 0).getDate();
+  const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => ymd(new Date(y, m, i + 1)))];
+  const end = to || (hover && from && hover >= from ? hover : null);
+  const today = ymd(new Date());
+  return (
+    <div className="dr-month">
+      <div className="dr-wd">{WD.map(w => <span key={w}>{w}</span>)}</div>
+      <div className="dr-days">
+        {cells.map((s, i) => {
+          if (!s) return <span key={'b' + i} />;
+          const dis = s > maxDay;
+          const isS = s === from, isE = s === end;
+          const inR = from && end && s > from && s < end;
+          const cls = ['dr-d', isS && 'start', isE && 'end', (isS || isE) && 'sel', inR && 'in', s === today && 'today', !to && hover && 'preview'].filter(Boolean).join(' ');
+          return (
+            <button type="button" key={s} className={cls} disabled={dis}
+              onClick={() => pick(s)} onMouseEnter={() => setHover(s)}>
+              <span>{+s.slice(8)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DateRange({ from, to, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({ from, to });
+  const [hover, setHover] = useState(null);
+  const [view, setView] = useState(() => { const d = parseYmd(to); return { y: d.getFullYear(), m: d.getMonth() - 1 }; });
+  const box = useRef(null);
+  const maxDay = ymd(new Date());
+  const list = presets();
+  const active = list.find(p => p[1] === from && p[2] === to)?.[0];
+  const draftActive = list.find(p => p[1] === draft.from && p[2] === draft.to)?.[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const k = e => e.key === 'Escape' && setOpen(false);
+    addEventListener('mousedown', h); addEventListener('keydown', k);
+    return () => { removeEventListener('mousedown', h); removeEventListener('keydown', k); };
+  }, [open]);
+
+  const toggle = () => {
+    if (!open) {
+      const d = parseYmd(to);
+      setDraft({ from, to }); setHover(null);
+      setView({ y: d.getFullYear(), m: d.getMonth() - 1 });
+    }
+    setOpen(!open);
+  };
+  const pick = s => {
+    if (!draft.from || draft.to) setDraft({ from: s, to: null });
+    else if (s < draft.from) setDraft({ from: s, to: null });
+    else setDraft({ from: draft.from, to: s });
+  };
+  const apply = (a = draft.from, b = draft.to || draft.from) => { onChange(a, b); setOpen(false); };
+  const shift = n => setView(v => { const d = new Date(v.y, v.m + n, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+  const m1 = new Date(view.y, view.m, 1), m2 = new Date(view.y, view.m + 1, 1);
+  const canNext = ymd(m2) < maxDay.slice(0, 8) + '01';
+  const nDays = draft.from && draft.to ? Math.round((parseYmd(draft.to) - parseYmd(draft.from)) / 864e5) + 1 : draft.from ? 1 : 0;
+
+  return (
+    <div className="dr" ref={box}>
+      <button type="button" className={'dr-trigger' + (open ? ' open' : '')} onClick={toggle}>
+        <span className="dr-ico"><Icon n="cal" s={16} /></span>
+        <span className="dr-val">
+          <b>{fmtDay(from)}</b>
+          {from !== to && <><Icon n="next" s={13} /><b>{fmtDay(to)}</b></>}
+        </span>
+        {active && <span className="dr-chip">{active}</span>}
+        <span className={'dr-car' + (open ? ' up' : '')}><Icon n="down2" s={15} /></span>
+      </button>
+
+      {open && (
+        <div className="dr-pop">
+          <div className="dr-presets">
+            <div className="dr-ph">Quick select</div>
+            {list.map(([l, a, b]) => (
+              <button type="button" key={l} className={'dr-p' + (draftActive === l ? ' on' : '')}
+                onClick={() => { setDraft({ from: a, to: b }); apply(a, b); }}>
+                {l}{draftActive === l && <Icon n="tick" s={14} />}
+              </button>
+            ))}
+          </div>
+          <div className="dr-main">
+            <div className="dr-nav">
+              <button type="button" className="pg" onClick={() => shift(-1)} aria-label="Previous month"><Icon n="prev" s={16} /></button>
+              <div className="dr-titles">
+                <b>{MONTHS[m1.getMonth()]} {m1.getFullYear()}</b>
+                <b className="dr-t2">{MONTHS[m2.getMonth()]} {m2.getFullYear()}</b>
+              </div>
+              <button type="button" className="pg" disabled={!canNext} onClick={() => shift(1)} aria-label="Next month"><Icon n="next" s={16} /></button>
+            </div>
+            <div className="dr-months" onMouseLeave={() => setHover(null)}>
+              <Month y={m1.getFullYear()} m={m1.getMonth()} from={draft.from} to={draft.to} hover={hover} setHover={setHover} pick={pick} maxDay={maxDay} />
+              <div className="dr-m2"><Month y={m2.getFullYear()} m={m2.getMonth()} from={draft.from} to={draft.to} hover={hover} setHover={setHover} pick={pick} maxDay={maxDay} /></div>
+            </div>
+            <div className="dr-foot">
+              <div className="dr-sum">
+                <span className="dr-box">{draft.from ? fmtDay(draft.from) : 'Start date'}</span>
+                <Icon n="next" s={13} />
+                <span className={'dr-box' + (!draft.to ? ' wait' : '')}>{draft.to ? fmtDay(draft.to) : 'End date'}</span>
+                {nDays > 0 && <small>{nDays} day{nDays > 1 ? 's' : ''}</small>}
+              </div>
+              <div className="row">
+                <button type="button" className="btn sm ghost" onClick={() => setOpen(false)}>Cancel</button>
+                <button type="button" className="btn sm" disabled={!draft.from} onClick={() => apply()}>Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ST_CLASS = s => {
   const t = (s || '').toLowerCase();
   if (t.includes('success') || (t.includes('booked') && !t.includes('not'))) return 'ok';
@@ -716,15 +862,15 @@ const ST_CLASS = s => {
 };
 
 function Results() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = ymd(new Date());
   const [f, setF] = useState({ from: today, to: today, q: '', status: '', gateway: '' });
   const [d, setD] = useState({ rows: [], total: 0, success_count: 0 });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = async (nf = f) => {
     setBusy(true);
-    try { setD(await api.results(f)); } catch { setD({ rows: [], total: 0, success_count: 0 }); }
+    try { setD(await api.results(nf)); } catch { setD({ rows: [], total: 0, success_count: 0 }); }
     setBusy(false);
   };
   // initial fetch (no synchronous setState inside the effect)
@@ -748,7 +894,7 @@ function Results() {
     <>
       <Head icon="activity" title="Booking Dashboard" sub="Live activity of every user">
         <IconBtn icon="csv" tip="Download CSV" onClick={csv} />
-        <IconBtn icon="refresh" tip="Refresh" onClick={load} disabled={busy} />
+        <IconBtn icon="refresh" tip="Refresh" onClick={() => load()} disabled={busy} />
       </Head>
       <div className="grid three">
         <div className="stat indigo"><div className="stat-ico"><Icon n="ticket" s={19} /></div><div><b>{d.total}</b><span>Total records</span></div></div>
@@ -756,8 +902,9 @@ function Results() {
         <div className="stat pink"><div className="stat-ico"><Icon n="alert" s={19} /></div><div><b>{Math.max(0, (d.total || 0) - (d.success_count || 0))}</b><span>Other</span></div></div>
       </div>
       <form className="card filters" onSubmit={e => { e.preventDefault(); load(); }}>
-        <div><label>From</label><input className="inp" type="date" value={f.from} onChange={e => setF({ ...f, from: e.target.value })} /></div>
-        <div><label>To</label><input className="inp" type="date" value={f.to} onChange={e => setF({ ...f, to: e.target.value })} /></div>
+        <div><label>Date range</label>
+          <DateRange from={f.from} to={f.to} onChange={(from, to) => { const nf = { ...f, from, to }; setF(nf); load(nf); }} />
+        </div>
         <div className="grow"><label>Search</label><div className="field"><Icon n="search" s={15} /><input className="inp" placeholder="Key / Train / Route" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} /></div></div>
         <div><label>Status</label>
           <select className="inp" value={f.status} onChange={e => setF({ ...f, status: e.target.value })}>

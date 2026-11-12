@@ -3,7 +3,7 @@ import {
   KeyRound, Clock, ShieldCheck, Download, LogOut, Search, Eye, Lock, Zap, User, KeySquare,
   Calendar, Banknote, Gift, ChartColumn, Plus, Menu, X, ChevronLeft, ChevronRight, ChevronsLeft,
   ChevronsRight, FileDown, RefreshCw, Activity, Wallet, TriangleAlert, CalendarPlus, BadgeCheck,
-  Inbox, Sparkles, ShieldBan, Ticket,
+  Inbox, Sparkles, ShieldBan, Ticket, ChevronDown, Check,
 } from 'lucide-react';
 
 const MAP = {
@@ -14,7 +14,7 @@ const MAP = {
   cash: Banknote, gift: Gift, chart: ChartColumn, menu: Menu, x: X, prev: ChevronLeft,
   next: ChevronRight, first: ChevronsLeft, last: ChevronsRight, csv: FileDown, refresh: RefreshCw,
   activity: Activity, wallet: Wallet, alert: TriangleAlert, badge: BadgeCheck, inbox: Inbox,
-  spark: Sparkles, block: ShieldBan, ticket: Ticket,
+  spark: Sparkles, block: ShieldBan, ticket: Ticket, down2: ChevronDown, tick: Check,
 };
 
 export default function Icon({ n, s = 16, w = 2 }) {
