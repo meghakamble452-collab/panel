@@ -5,14 +5,14 @@ import Icon from './components/Icon';
 import './theme.css';
 
 const NAV = [
-  ['/', 'Dashboard', 'dash'],
-  ['/add', 'Add New Member', 'add'],
-  ['/masters', 'All Super Masters', 'crown'],
-  ['/users', 'All Users', 'users'],
-  ['/deleted', 'Deleted Users', 'trash'],
-  ['/payments', 'Payment History', 'rupee'],
-  ['/paid', 'Paid History', 'badge'],
-  ['/results', 'Today Results', 'activity'],
+  ['/', 'Dashboard', 'dash', ['dev', 'super_master', 'master', 'admin', 'seller']],
+  ['/add', 'Add New Member', 'add', ['dev', 'super_master', 'master', 'admin']],
+  ['/masters', 'All Super Masters', 'crown', ['dev', 'super_master', 'master']],
+  ['/users', 'All Users', 'users', ['dev', 'super_master', 'master', 'admin', 'seller']],
+  ['/deleted', 'Deleted Users', 'trash', ['dev', 'super_master', 'master', 'admin']],
+  ['/payments', 'Payment History', 'rupee', ['dev', 'super_master']],
+  ['/paid', 'Paid History', 'badge', ['dev', 'super_master', 'master']],
+  ['/results', 'Today Results', 'activity', ['dev', 'super_master', 'master', 'admin', 'seller']],
 ];
 
 /* ───────────────────────── Shared UI ───────────────────────── */
@@ -278,8 +278,12 @@ export default function App() {
   );
   if (me === false) return <Login onDone={setMe} />;
 
-  const Page = { '/': Dashboard, '/add': AddMember, '/masters': Masters, '/users': Users, '/deleted': Deleted, '/payments': Payments, '/paid': Paid, '/results': Results }[route] || Dashboard;
-  const cur = NAV.find(n => n[0] === route) || NAV[0];
+  // Role guard: disallowed page par jaane se Dashboard dikhega
+  const allowed = NAV.filter(n => n[3].includes(me.role));
+  const fallback = allowed.some(n => n[0] === route) ? route : '/';
+
+  const Page = { '/': Dashboard, '/add': AddMember, '/masters': Masters, '/users': Users, '/deleted': Deleted, '/payments': Payments, '/paid': Paid, '/results': Results }[fallback] || Dashboard;
+  const cur = allowed.find(n => n[0] === route) || allowed[0] || NAV[0];
 
   return (
     <div className="shell">
@@ -293,8 +297,8 @@ export default function App() {
         </div>
         <div className="nav-lbl">MENU</div>
         <nav>
-          {NAV.map(([p, l, i]) => (
-            <a key={p} href={'#' + p} className={route === p ? 'on' : ''}><span className="ni"><Icon n={i} s={17} /></span>{l}</a>
+          {allowed.map(([p, l, i]) => (
+            <a key={p} href={'#' + p} className={fallback === p ? 'on' : ''}><span className="ni"><Icon n={i} s={17} /></span>{l}</a>
           ))}
         </nav>
         <div className="spacer" />
@@ -314,7 +318,7 @@ export default function App() {
             <div className="pill"><span className="pulse" /> Secure · Operational</div>
           </div>
         </header>
-        <div className="page" key={route}>
+        <div className="page" key={fallback}>
           <Page me={me} />
         </div>
       </main>
@@ -327,6 +331,7 @@ const Mesh = () => <div className="mesh" aria-hidden="true"><i /><i /><i /><i />
 function Login({ onDone }) {
   const [u, setU] = useState(''); const [p, setP] = useState('');
   const [e, setE] = useState(''); const [busy, setBusy] = useState(false);
+  const [showP, setShowP] = useState(false);
   return (
     <div className="login"><Mesh />
       <form className="box" onSubmit={async ev => {
@@ -338,7 +343,13 @@ function Login({ onDone }) {
         <h1>Welcome back</h1>
         <p className="sub">Sign in to continue to Express Portal</p>
         <div className="field"><Icon n="user" s={16} /><input className="inp" placeholder="Username" value={u} onChange={e => setU(e.target.value)} autoComplete="username" /></div>
-        <div className="field"><Icon n="lock" s={16} /><input className="inp" type="password" placeholder="Password" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password" /></div>
+        <div className="field pw"><Icon n="lock" s={16} />
+          <input className="inp" type={showP ? 'text' : 'password'} placeholder="Password" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password" />
+          <button type="button" className={'eye' + (showP ? ' on' : '')} onClick={() => setShowP(v => !v)}
+            aria-label={showP ? 'Hide password' : 'Show password'} title={showP ? 'Hide password' : 'Show password'}>
+            <Icon n={showP ? 'eyeoff' : 'eye'} s={17} />
+          </button>
+        </div>
         {e && <div className="err"><Icon n="alert" s={14} /> {e}</div>}
         <button className="btn lg" style={{ width: '100%' }} disabled={busy}>
           {busy ? <>Signing in <Dots /></> : 'Login'}
