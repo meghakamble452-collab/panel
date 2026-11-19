@@ -86,9 +86,9 @@ function Tabs({ value, onChange, items }) {
   );
 }
 
-function Head({ icon, title, sub, tag, children }) {
+function Head({ icon, title, sub, tag, plain, children }) {
   return (
-    <div className="pagehead">
+    <div className={'pagehead' + (plain ? ' plain' : '')}>
       <div className="ph-l">
         <div className="ph-ico"><Icon n={icon} s={20} /></div>
         <div>
@@ -455,6 +455,9 @@ function Masters() {
   const [tab, setTab] = useState('all');
   const [ask, modal] = useConfirm();
   const [prompt, drawer] = usePrompt();
+  const [hist, setHist] = useState(null);
+  const [hrows, setHrows] = useState([]);
+  const openHist = async r => { setHist(r); setHrows([]); try { setHrows(await api.logs(r.id)); } catch { setHrows([]); } };
   const reload = useCallback(() => api.masters().then(setRows).catch(() => setRows([])).finally(() => setLoading(false)), []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -480,10 +483,10 @@ function Masters() {
           <table>
             <thead><tr>
               <th>Member</th><th>Password</th><th>Admin</th><th className="num">Due</th><th className="num">Today Sold</th>
-              <th className="num">Total Sold</th><th className="num">Active Sold</th><th className="num">Weekly</th><th className="num">Today Reward</th><th>Status</th><th>Action</th>
+              <th className="num">Total Sold</th><th className="num">Active Sold</th><th className="num">Weekly</th><th className="num">Today Reward</th><th className="num">Activity</th><th>Status</th><th>Action</th>
             </tr></thead>
             <tbody>
-              {list.length === 0 && <Empty cols={11} />}
+              {list.length === 0 && <Empty cols={12} />}
               {pageRows.map(r => (
                 <tr key={r.id}>
                   <td><div className="cell-main"><b>{r.username}</b><small>ID - {r.id} <Badge tone="info">{ROLE_LABEL[r.role] ?? r.role}</Badge></small></div></td>
@@ -495,8 +498,10 @@ function Masters() {
                   <td className="num">{r.active_sold}</td>
                   <td className="num">{r.weekly_sale}</td>
                   <td className="num"><span className="money ok">₹{r.today_reward}</span></td>
+                  <td className="num">{r.act_count}</td>
                   <td><Badge tone={r.status === 'active' ? 'ok' : 'no'}>{r.status}</Badge></td>
                   <td><div className="acts">
+                    <IconBtn icon="activity" tip="Activity" onClick={() => openHist(r)} />
                     <IconBtn icon="pass" tip="Change Password" onClick={() => prompt({
                       title: 'Change password', sub: r.username, icon: 'pass', label: 'New password', placeholder: 'Min 4 characters',
                       validate: v => v.length < 4 && 'Password kam se kam 4 characters ka hona chahiye',
@@ -521,6 +526,17 @@ function Masters() {
         {pager}
       </div>
       {modal}{drawer}
+      <Drawer open={!!hist} onClose={() => setHist(null)} title="Activity" sub={hist?.username} icon="activity">
+        <div className="drawer-body">
+          {hrows.length === 0 && <p className="hint">Koi activity nahi.</p>}
+          {hrows.map(l => (
+            <div key={l.id} className="hint" style={{ marginBottom: 8 }}>
+              <b>{l.action}</b> {l.target_name ? `→ ${l.target_name}` : ''} {l.note ? `(${l.note})` : ''}
+              <br /><small>{l.created_at} · {l.ip || '-'}</small>
+            </div>
+          ))}
+        </div>
+      </Drawer>
     </>
   );
 }
@@ -927,7 +943,7 @@ function Results() {
   if (loading) return <Loader text="Results load ho rahe hain" />;
   return (
     <>
-      <Head icon="activity" title="Booking Dashboard" sub="Live activity of every user">
+      <Head plain icon="activity" title="Booking Dashboard" sub="Live activity of every user">
         <div className="mini-stats">
           <div className="mstat indigo"><span className="stat-ico"><Icon n="ticket" s={16} /></span><div><b>{d.total}</b><small>Total records</small></div></div>
           <div className="mstat green"><span className="stat-ico"><Icon n="check" s={16} /></span><div><b>{d.success_count}</b><small>Success</small></div></div>

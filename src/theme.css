@@ -115,6 +115,8 @@ button,input,select,textarea{font-family:inherit}
 .pagehead h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pagehead p{margin:4px 0 0;font-size:13.5px;color:var(--text-2)}
 .ph-r{display:flex;gap:10px;align-items:center}
+.pagehead.plain{background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:6px 2px}
+.pagehead.plain::before{display:none}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.8px;color:var(--primary);background:var(--primary-soft);border:1px solid rgba(37,99,235,.2);padding:4px 10px;border-radius:999px}
 
 .role-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:12.5px;color:var(--text-2);background:rgba(255,255,255,.8);border:1px solid rgba(15,23,42,.08);box-shadow:0 1px 2px rgba(15,23,42,.05)}

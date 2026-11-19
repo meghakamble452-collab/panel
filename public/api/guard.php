@@ -20,3 +20,10 @@ function subIds(array $u): array {
   }
   return $ids;
 }
+function inScope(array $ids, int $id): bool { return !$ids || in_array($id, $ids, true); }
+function logAct(array $u, string $action, ?int $tid = null, ?string $tname = null, ?string $trole = null, string $note = ''): void {
+  try {
+    db()->prepare('INSERT INTO admin_logs (actor_id,actor_role,action,target_id,target_name,target_role,note,ip) VALUES (?,?,?,?,?,?,?,?)')
+        ->execute([(int)$u['id'], $u['role'], $action, $tid, $tname, $trole, $note, $_SERVER['REMOTE_ADDR'] ?? '']);
+  } catch (Throwable $e) {}
+}
