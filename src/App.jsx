@@ -5,15 +5,24 @@ import Icon from './components/Icon';
 import './theme.css';
 
 const NAV = [
-  ['/', 'Dashboard', 'dash', ['dev', 'super_master', 'master', 'admin', 'seller']],
-  ['/add', 'Add New Member', 'add', ['dev', 'super_master', 'master', 'admin']],
-  ['/masters', 'All Super Masters', 'crown', ['dev', 'super_master', 'master']],
-  ['/users', 'All Users', 'users', ['dev', 'super_master', 'master', 'admin', 'seller']],
-  ['/deleted', 'Deleted Users', 'trash', ['dev', 'super_master', 'master', 'admin']],
-  ['/payments', 'Payment History', 'rupee', ['dev', 'super_master']],
-  ['/paid', 'Paid History', 'badge', ['dev', 'super_master', 'master']],
-  ['/results', 'Today Results', 'activity', ['dev', 'super_master', 'master', 'admin', 'seller']],
+  ['/', 'Dashboard', 'dash', ['developer', 'controller', 'master', 'admin', 'seller']],
+  ['/add', 'Add New Member', 'add', ['developer', 'controller', 'master', 'admin']],
+  ['/masters', 'Member List', 'crown', ['developer', 'controller', 'master', 'admin']],
+  ['/users', 'All Users', 'users', ['developer', 'controller', 'master', 'admin', 'seller']],
+  ['/deleted', 'Deleted Users', 'trash', ['developer', 'controller', 'master', 'admin']],
+  ['/payments', 'Payment History', 'rupee', ['developer', 'controller']],
+  ['/paid', 'Paid History', 'badge', ['developer', 'controller', 'master']],
+  ['/results', 'Today Results', 'activity', ['developer', 'controller', 'master', 'admin', 'seller']],
 ];
+
+const ROLE_LABEL = { developer: 'Developer', controller: 'Controller', master: 'Master', admin: 'Admin', seller: 'Seller' };
+const BELOW = {
+  developer: ['controller', 'master', 'admin', 'seller'],
+  controller: ['master', 'admin', 'seller'],
+  master: ['admin', 'seller'],
+  admin: ['seller'],
+  seller: [],
+};
 
 /* ───────────────────────── Shared UI ───────────────────────── */
 
@@ -305,15 +314,26 @@ export default function App() {
         <a className="dl" href="/api/download.php"><span className="ni"><Icon n="down" s={17} /></span>Download Express</a>
         <div className="me">
           <div className="av">{initials(me.username)}</div>
-          <div className="me-t"><b>{me.username}</b><small>{me.role.replace('_', ' ')}</small></div>
+          <div className="me-t"><b>{me.username}</b><small>{ROLE_LABEL[me.role] ?? me.role}</small></div>
           <IconBtn icon="out" tip="Logout" tone="d" onClick={async () => { await api.logout(); setMe(false); }} />
         </div>
       </aside>
       <main className="main">
         <header className="top">
           <button className="ico burger" onClick={() => setNav(true)} aria-label="Open menu"><Icon n="menu" s={17} /></button>
-          <div className="crumb"><span>Express</span><Icon n="next" s={13} /><b>{cur[1]}</b></div>
+          <div className={'ident r-' + me.role}>
+            <div className="ident-av">{initials(me.username)}</div>
+            <div className="ident-t">
+              <div className="ident-h"><b>{ROLE_LABEL[me.role] ?? me.role} Dashboard</b></div>
+              <div className="crumb"><span>{me.username}</span><Icon n="next" s={12} /><span className="crumb-cur">{cur[1]}</span></div>
+            </div>
+          </div>
           <div className="top-r">
+            <div className={'role-card r-' + me.role}>
+              <span className="rc-ico"><Icon n="shield" s={15} /></span>
+              <span className="rc-t"><small>Logged in as</small><b>{ROLE_LABEL[me.role] ?? me.role}</b></span>
+            </div>
+            <span className="top-div" />
             <div className="clock"><Icon n="clock" s={14} /><b>{tick.toLocaleTimeString('en-GB')}</b><small>{tick.toDateString()}</small></div>
             <div className="pill"><span className="pulse" /> Secure · Operational</div>
           </div>
@@ -362,7 +382,7 @@ function Login({ onDone }) {
 /* ───────────────────────── Pages ───────────────────────── */
 
 const STATS = [
-  ['Super Masters', 'super_masters', 'crown', 'violet'],
+  ['Controllers', 'controllers', 'crown', 'violet'],
   ['Masters', 'masters', 'user', 'blue'],
   ['Admins', 'admins', 'shield', 'cyan'],
   ['Sellers', 'sellers', 'users', 'teal'],
@@ -392,13 +412,18 @@ function Dashboard({ me }) {
   );
 }
 
-function AddMember() {
-  const blank = { username: '', password: '', role: 'seller', rate: 500 };
+function AddMember({ me }) {
+  const opts = BELOW[me.role] ?? [];
+  const blank = { username: '', password: '', role: opts[0] ?? 'seller', rate: 500 };
   const [f, setF] = useState(blank);
   const [msg, setMsg] = useState(null); const [busy, setBusy] = useState(false);
   return (
     <>
-      <Head icon="add" title="Add New Member" sub="Create seller / admin / master" tag="NEW MEMBER" />
+      <Head icon="add" title="Add New Member"
+        sub={opts.length ? `Create ${opts.map(r => (ROLE_LABEL[r] ?? r).toLowerCase()).join(' / ')}` : 'Aapke role se naya member nahi ban sakta'}
+        tag={`NEW ${(ROLE_LABEL[f.role] ?? f.role).toUpperCase()}`}>
+        <span className="role-chip"><Icon n="shield" s={14} /> Logged in as <b>{ROLE_LABEL[me.role] ?? me.role}</b></span>
+      </Head>
       <form className="card form" onSubmit={async e => {
         e.preventDefault(); setBusy(true);
         try { await api.addMaster(f); setMsg({ ok: true, t: 'Created: ' + f.username }); setF(blank); }
@@ -409,7 +434,7 @@ function AddMember() {
           <div><label>Member name</label><div className="field"><Icon n="user" s={15} /><input className="inp" value={f.username} onChange={e => setF({ ...f, username: e.target.value })} /></div></div>
           <div><label>Role</label>
             <select className="inp" value={f.role} onChange={e => setF({ ...f, role: e.target.value })}>
-              {['super_master', 'master', 'admin', 'seller'].map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+              {opts.map(r => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
             </select>
           </div>
           <div><label>Password</label><div className="field"><Icon n="lock" s={15} /><input className="inp" value={f.password} onChange={e => setF({ ...f, password: e.target.value })} /></div></div>
@@ -461,7 +486,7 @@ function Masters() {
               {list.length === 0 && <Empty cols={11} />}
               {pageRows.map(r => (
                 <tr key={r.id}>
-                  <td><div className="cell-main"><b>{r.username}</b><small>ID - {r.id} <Badge tone="info">{r.role.replace('_', ' ')}</Badge></small></div></td>
+                  <td><div className="cell-main"><b>{r.username}</b><small>ID - {r.id} <Badge tone="info">{ROLE_LABEL[r.role] ?? r.role}</Badge></small></div></td>
                   <td className="mono">{r.pass_plain || '-'}</td>
                   <td>{r.admin}</td>
                   <td className="num"><span className="money no">₹{r.payment_due}</span></td>
@@ -538,7 +563,6 @@ function Users() {
       <div className="toolbar">
         <SearchBox value={q} onChange={setQ} placeholder="Search User / Key / MAC ID…" />
         <div className="row tb-r">
-          <button className="btn sm outline r" onClick={() => ask('Delete all unpaid keys?', 'Saari unpaid keys delete ho jaayengi.', () => api.bulk('deleteunpaid').then(reload))}><Icon n="trash" s={14} /> Delete All Unpaid</button>
           <button className="btn sm outline" onClick={() => ask('Deactivate all keys?', 'Saare keys band ho jaayenge.', () => api.bulk('deactivateall').then(reload))}><Icon n="power" s={14} /> Deactivate All</button>
           <button className="btn sm outline g" onClick={() => ask('Activate all keys?', 'Saare keys chalu ho jaayenge.', () => api.bulk('activateall').then(reload), false)}><Icon n="bolt" s={14} /> Activate All</button>
           <button className="btn sm outline" onClick={() => ask('Reset all MAC?', 'Saare devices unbind ho jaayenge.', () => api.bulk('resetall').then(reload))}><Icon n="reset" s={14} /> Reset All</button>
@@ -904,14 +928,15 @@ function Results() {
   return (
     <>
       <Head icon="activity" title="Booking Dashboard" sub="Live activity of every user">
+        <div className="mini-stats">
+          <div className="mstat indigo"><span className="stat-ico"><Icon n="ticket" s={16} /></span><div><b>{d.total}</b><small>Total records</small></div></div>
+          <div className="mstat green"><span className="stat-ico"><Icon n="check" s={16} /></span><div><b>{d.success_count}</b><small>Success</small></div></div>
+          <div className="mstat pink"><span className="stat-ico"><Icon n="alert" s={16} /></span><div><b>{Math.max(0, (d.total || 0) - (d.success_count || 0))}</b><small>Other</small></div></div>
+        </div>
+        <span className="top-div" />
         <IconBtn icon="csv" tip="Download CSV" onClick={csv} />
         <IconBtn icon="refresh" tip="Refresh" onClick={() => load()} disabled={busy} />
       </Head>
-      <div className="grid three">
-        <div className="stat indigo"><div className="stat-ico"><Icon n="ticket" s={19} /></div><div><b>{d.total}</b><span>Total records</span></div></div>
-        <div className="stat green"><div className="stat-ico"><Icon n="check" s={19} /></div><div><b>{d.success_count}</b><span>Success</span></div></div>
-        <div className="stat pink"><div className="stat-ico"><Icon n="alert" s={19} /></div><div><b>{Math.max(0, (d.total || 0) - (d.success_count || 0))}</b><span>Other</span></div></div>
-      </div>
       <form className="card filters" onSubmit={e => { e.preventDefault(); load(); }}>
         <div><label>Date range</label>
           <DateRange from={f.from} to={f.to} onChange={(from, to) => { const nf = { ...f, from, to }; setF(nf); load(nf); }} />

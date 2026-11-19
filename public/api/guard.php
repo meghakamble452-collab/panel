@@ -10,7 +10,7 @@ function me(): ?array {
 }
 function need(): array { $u = me(); if (!$u) jj(['error'=>'Not logged in'], 401); return $u; }
 function subIds(array $u): array {
-  if ($u['role'] === 'dev') return [];
+  if ($u['role'] === 'developer') return [];
   $ids = [(int)$u['id']]; $f = [(int)$u['id']];
   for ($i = 0; $i < 5 && $f; $i++) {
     $in = implode(',', $f);
