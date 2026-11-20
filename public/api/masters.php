@@ -64,5 +64,6 @@ $rows = db()->query('SELECT a.id,a.username,a.pass_plain,a.role,a.status,a.per_i
   (SELECT COUNT(*) FROM users x WHERE x.owner_id=a.id AND x.deleted_at IS NULL AND x.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)) weekly_sale,
   ((SELECT COUNT(*) FROM users x WHERE x.owner_id=a.id AND x.deleted_at IS NULL AND DATE(x.created_at)=CURDATE()) * a.per_id_rate) today_reward,
   (SELECT COUNT(*) FROM admin_logs l WHERE l.actor_id=a.id) act_count
-  FROM admins a LEFT JOIN admins p ON p.id=a.parent_id'.($ids ? ' WHERE a.id IN ('.implode(',', $ids).')' : '').' ORDER BY a.id DESC')->fetchAll();
+  FROM admins a LEFT JOIN admins p ON p.id=a.parent_id
+  WHERE a.id <> '.(int)$u['id'].($ids ? ' AND a.id IN ('.implode(',', $ids).')' : '').' ORDER BY a.id DESC')->fetchAll();
 jj($rows);
