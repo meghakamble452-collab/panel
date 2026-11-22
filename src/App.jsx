@@ -671,7 +671,7 @@ function Users() {
                           validate: v => (!v && 'Days daalo') || (+v > 90 && 'Demo max 90 din ka ho sakta hai'),
                           onSubmit: v => act(r.id, 'makedemo', '&days=' + encodeURIComponent(v)),
                         })} />}
-                    <IconBtn icon="trash" tip={r.keycode === 'SGX9777' ? 'Developer key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'SGX9777'}
+                    <IconBtn icon="trash" tip={r.keycode === 'NXDEV2026MASTER' ? 'Developer master key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'NXDEV2026MASTER'}
   onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
