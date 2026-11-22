@@ -28,10 +28,14 @@ export const api = {
   addUsers: b => req('/users.php', { method:'POST', body: JSON.stringify(b) }),
   userAct: (id,a,extra='') => req(`/users.php?action=${a}&id=${id}${extra}`, { method:'POST' }),
   bulk:   a => req(`/users.php?action=${a}`, { method:'POST' }),
-  deleted:q => req(`/deleted.php?q=${encodeURIComponent(q||'')}`).then(arr),
+  deleted:(q, by) => req(`/deleted.php?q=${encodeURIComponent(q||'')}&by=${encodeURIComponent(by||'')}`).then(arr),
+  downline:() => req('/downline.php').then(arr),
   payments:() => req('/payments.php'),
   addPay: b => req('/payments.php', { method:'POST', body: JSON.stringify(b) }),
   paid:   q => req(`/paid.php?q=${encodeURIComponent(q||'')}`).then(arr),
   results: p => req(`/activities.php?from=${p.from}&to=${p.to}&q=${encodeURIComponent(p.q||'')}&status=${encodeURIComponent(p.status||'')}&gateway=${encodeURIComponent(p.gateway||'')}`).then(d => d),
-  logs:   id => req('/logs.php' + (id ? '?id=' + id : '')).then(arr),
+  logs: (id, p = {}) => {
+    const s = new URLSearchParams({ ...(id ? { id } : {}), ...p }).toString();
+    return req('/logs.php' + (s ? '?' + s : '')).then(arr);
+  },
 };

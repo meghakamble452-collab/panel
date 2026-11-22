@@ -435,3 +435,12 @@ th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
   .stat b{font-size:20px}
   .stat-ico{width:38px;height:38px}
 }
+.actor-pick { display: flex; flex-direction: column; gap: 6px; min-width: 210px; }
+.field.search.sm { padding: 4px 8px; }
+.field.search.sm .inp { font-size: 12px; }
+.act-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line, #e8edf5); }
+.act-item:last-child { border-bottom: 0; }
+.act-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: 0 0 8px; background: #94a3b8; }
+.act-dot.g { background: #16a34a; } .act-dot.r { background: #dc2626; } .act-dot.w { background: #d97706; }
+.act-t b { font-size: 13px; } .act-t p { margin: 2px 0; font-size: 12px; color: #475569; }
+.act-t small { color: #94a3b8; font-size: 11px; }

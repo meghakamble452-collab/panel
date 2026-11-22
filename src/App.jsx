@@ -10,6 +10,7 @@ const NAV = [
   ['/masters', 'Member List', 'crown', ['developer', 'controller', 'master', 'admin']],
   ['/users', 'All Users', 'users', ['developer', 'controller', 'master', 'admin', 'seller']],
   ['/deleted', 'Deleted Users', 'trash', ['developer', 'controller', 'master', 'admin']],
+  ['/activity', 'Activity Log', 'activity', ['developer', 'controller', 'master', 'admin']],
   ['/payments', 'Payment History', 'rupee', ['developer', 'controller']],
   ['/paid', 'Paid History', 'badge', ['developer', 'controller', 'master']],
   ['/results', 'Today Results', 'activity', ['developer', 'controller', 'master', 'admin', 'seller']],
@@ -264,6 +265,43 @@ function useRipple() {
   }, []);
 }
 
+const ACT_LABEL = {
+  login: 'Login kiya', create: 'Naya member banaya', delete: 'Member delete kiya',
+  block: 'Member block kiya', activate: 'Member activate kiya', setpass: 'Password badla',
+  addpay: 'Payment add ki',
+  key_gen: 'Key generate ki', key_off: 'Key deactivate ki', key_on: 'Key activate ki',
+  key_paid: 'Key paid mark ki', key_mac: 'Key ka MAC reset kiya', key_days: 'Validity badhai',
+  key_del: 'Key delete ki',
+  bulk_off: 'Saari keys deactivate kin', bulk_on: 'Saari keys activate kin',
+  bulk_mac: 'Sabke MAC reset kiye', bulk_del_unpaid: 'Saari unpaid keys delete kin',
+};
+
+const ACT_TONE = {
+  create: 'g', key_gen: 'g', key_on: 'g', activate: 'g', key_paid: 'g',
+  delete: 'r', key_del: 'r', block: 'r', bulk_off: 'r', bulk_del_unpaid: 'r',
+  key_days: 'w', addpay: 'w', key_mac: 'w', setpass: 'w',
+};
+
+const ACT_OPTIONS = Object.entries(ACT_LABEL);
+
+function ActorPick({ people, value, onChange }) {
+  const [s, setS] = useState('');
+  const list = people.filter(p => !s || p.username.toLowerCase().includes(s.toLowerCase()));
+  return (
+    <div className="actor-pick">
+      <div className="field search sm">
+        <Icon n="search" s={14} />
+        <input className="inp" placeholder="Member dhundo…" value={s} onChange={e => setS(e.target.value)} />
+      </div>
+      <select className="inp" value={value} onChange={e => onChange(e.target.value)}>
+        <option value="">Sab log</option>
+        {people.filter(p => p.me).map(p => <option key={p.id} value="me">Me ({p.username})</option>)}
+        {list.filter(p => !p.me).map(p => <option key={p.id} value={p.id}>{p.username} · {p.role}</option>)}
+      </select>
+    </div>
+  );
+}
+
 const initials = s => (s || '?').slice(0, 2).toUpperCase();
 
 /* ───────────────────────── App shell ───────────────────────── */
@@ -291,7 +329,7 @@ export default function App() {
   const allowed = NAV.filter(n => n[3].includes(me.role));
   const fallback = allowed.some(n => n[0] === route) ? route : '/';
 
-  const Page = { '/': Dashboard, '/add': AddMember, '/masters': Masters, '/users': Users, '/deleted': Deleted, '/payments': Payments, '/paid': Paid, '/results': Results }[fallback] || Dashboard;
+  const Page = { '/': Dashboard, '/add': AddMember, '/masters': Masters, '/users': Users, '/deleted': Deleted, '/activity': Activity, '/payments': Payments, '/paid': Paid, '/results': Results }[fallback] || Dashboard;
   const cur = allowed.find(n => n[0] === route) || allowed[0] || NAV[0];
 
   return (
@@ -482,7 +520,7 @@ function Masters() {
         <div className="tbl-wrap">
           <table>
             <thead><tr>
-              <th>Member</th><th>Password</th><th>Admin</th><th className="num">Due</th><th className="num">Today Sold</th>
+              <th>Member</th><th>Password</th><th>Admin</th><th className="num">Due</th><th>Created</th><th className="num">Today Sold</th>
               <th className="num">Total Sold</th><th className="num">Active Sold</th><th className="num">Weekly</th><th className="num">Today Reward</th><th className="num">Activity</th><th>Status</th><th>Action</th>
             </tr></thead>
             <tbody>
@@ -492,6 +530,7 @@ function Masters() {
                   <td><div className="cell-main"><b>{r.username}</b><small>ID - {r.id} <Badge tone="info">{ROLE_LABEL[r.role] ?? r.role}</Badge></small></div></td>
                   <td className="mono">{r.pass_plain || '-'}</td>
                   <td>{r.admin}</td>
+                  <td className="muted">{r.created_at || '-'}</td>
                   <td className="num"><span className="money no">₹{r.payment_due}</span></td>
                   <td className="num">{r.today_sold}</td>
                   <td className="num">{r.total_sold}</td>
@@ -530,9 +569,15 @@ function Masters() {
         <div className="drawer-body">
           {hrows.length === 0 && <p className="hint">Koi activity nahi.</p>}
           {hrows.map(l => (
-            <div key={l.id} className="hint" style={{ marginBottom: 8 }}>
-              <b>{l.action}</b> {l.target_name ? `→ ${l.target_name}` : ''} {l.note ? `(${l.note})` : ''}
-              <br /><small>{l.created_at} · {l.ip || '-'}</small>
+            <div key={l.id} className="act-item">
+              <span className={'act-dot ' + (ACT_TONE[l.action] || 'n')} />
+              <div className="act-t">
+                <b>{ACT_LABEL[l.action] || l.action}</b>
+                {l.target_name && <> — <span className="mono">{l.target_name}</span></>}
+                {l.target_role && <Badge tone="info">{l.target_role}</Badge>}
+                {l.note && <p>{l.note}</p>}
+                <small>{l.created_at} · IP {l.ip || '-'}</small>
+              </div>
             </div>
           ))}
         </div>
@@ -546,7 +591,7 @@ function Users() {
   const [loading, setLoading] = useState(true); const [doneQ, setDoneQ] = useState(null);
   const [tab, setTab] = useState('all');
   const [gen, setGen] = useState(false);
-  const [f, setF] = useState({ count: 1, days: 30, prefix: 'EXP', key: '' });
+  const [f, setF] = useState({ key: '', days: 30 });
   const [genBusy, setGenBusy] = useState(false); const [genErr, setGenErr] = useState('');
   const [ask, modal] = useConfirm();
   const [prompt, drawer] = usePrompt();
@@ -568,7 +613,7 @@ function Users() {
   return (
     <>
       <Head icon="users" title="User List" sub="All software key management">
-        <button className="btn" onClick={() => { setGenErr(''); setF({ count: 1, days: 30, prefix: 'EXP', key: '' }); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEYS</button>
+        <button className="btn" onClick={() => { setGenErr(''); setF({ key: '', days: 30 }); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEY</button>
       </Head>
       <div className="toolbar">
         <Tabs value={tab} onChange={setTab} items={[
@@ -621,11 +666,12 @@ function Users() {
         {pager}
       </div>
 
-      <Drawer open={gen} onClose={closeGen} title="Generate keys" sub="Naye software keys banaiye" icon="key">
+      <Drawer open={gen} onClose={closeGen} title="Generate key" sub="Apni key khud likho, auto kuch nahi banega" icon="key">
         <DrawerForm busy={genBusy} err={genErr} submitText="Generate" onCancel={closeGen} onSubmit={async e => {
           e.preventDefault();
-          if (f.key && (f.key.length < 10 || f.key.length > 20)) {
-            setGenErr('Custom key 10 se 20 character ke beech honi chahiye');
+          if (!f.key) { setGenErr('Key daalna zaroori hai'); return; }
+          if (f.key.length < 10 || f.key.length > 20) {
+            setGenErr('Key 10 se 20 character ke beech honi chahiye');
             return;
           }
           setGenBusy(true); setGenErr('');
@@ -633,23 +679,15 @@ function Users() {
           catch (x) { setGenErr(x.message); }
           setGenBusy(false);
         }}>
-          <label>Count</label>
-          <input className="inp" type="number" value={f.count} disabled={!!f.key} onChange={e => setF({ ...f, count: e.target.value })} />
+          <label>Key *</label>
+          <input className="inp" autoFocus value={f.key} maxLength={20} placeholder="10 se 20 character, sirf A-Z 0-9"
+            onChange={e => setF({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
+          <p className="hint">
+            {f.key.length}/20 character — minimum 10 chahiye. Ye key pehle se hui to error aayega.
+          </p>
 
           <label>Days</label>
           <input className="inp" type="number" value={f.days} onChange={e => setF({ ...f, days: e.target.value })} />
-
-          <label>Prefix</label>
-          <input className="inp" value={f.prefix} disabled={!!f.key} onChange={e => setF({ ...f, prefix: e.target.value })} />
-
-          <label>Custom key (optional)</label>
-          <input className="inp" value={f.key} maxLength={20} placeholder="10 se 20 character, sirf A-Z 0-9"
-            onChange={e => setF({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
-          <p className="hint">
-            {f.key
-              ? `${f.key.length}/20 character — sirf 1 key banegi. Key pehle se hui to error aayega.`
-              : `${f.count || 0} key(s) auto banengi, ${f.days || 0} din ki validity ke saath.`}
-          </p>
         </DrawerForm>
       </Drawer>
       {modal}{drawer}
@@ -659,28 +697,41 @@ function Users() {
 
 function Deleted() {
   const [rows, setRows] = useState([]); const [q, setQ] = useState('');
+  const [people, setPeople] = useState([]); const [by, setBy] = useState('');
   const [loading, setLoading] = useState(true); const [doneQ, setDoneQ] = useState(null);
   const dq = useDebounced(q);
-  const fetching = doneQ !== dq;
+  const fetching = doneQ !== dq + by;
+  useEffect(() => { api.downline().then(setPeople).catch(() => setPeople([])); }, []);
   useEffect(() => {
-    api.deleted(dq).then(setRows).catch(() => setRows([])).finally(() => { setLoading(false); setDoneQ(dq); });
-  }, [dq]);
-  const { rows: pageRows, pager } = usePaged(rows, dq);
+    api.deleted(dq, by).then(setRows).catch(() => setRows([])).finally(() => { setLoading(false); setDoneQ(dq + by); });
+  }, [dq, by]);
+  const { rows: pageRows, pager } = usePaged(rows, dq + by);
   if (loading) return <Loader text="Deleted users load ho rahe hain" />;
   return (
     <>
-      <Head icon="trash" title="Deleted User List" sub="Deleted software key history" tag={`TOTAL ${rows.length}`} />
-      <div className="toolbar"><SearchBox value={q} onChange={setQ} placeholder="Search Deleted User…" /></div>
+      <Head icon="trash" title="Deleted User List" sub="Kisne kaunsi key delete ki — full audit" tag={`TOTAL ${rows.length}`} />
+      <div className="toolbar">
+        <ActorPick people={people} value={by} onChange={setBy} />
+        <SearchBox value={q} onChange={setQ} placeholder="Search Deleted User / Key / MAC…" />
+      </div>
       <div className="card tcard">
         <Bar on={fetching} />
         <div className="tbl-wrap">
           <table>
-            <thead><tr><th>Key</th><th className="num">Days</th><th>Seller</th><th>Admin</th><th>Master</th><th>Super Master</th><th>Paid</th></tr></thead>
+            <thead><tr><th>Key</th><th className="num">Days</th><th>Deleted By</th><th>Deleted At</th><th>Seller</th><th>Admin</th><th>Master</th><th>Super Master</th><th>Paid</th></tr></thead>
             <tbody>
-              {rows.length === 0 && <Empty cols={7} />}
+              {rows.length === 0 && <Empty cols={9} />}
               {pageRows.map(r => (
                 <tr key={r.id}>
-                  <td><b className="key">{r.keycode}</b></td><td className="num">{r.days_left}</td>
+                  <td><b className="key">{r.keycode}</b><small className="muted"> · ID {r.id}</small></td>
+                  <td className="num">{r.days_left}</td>
+                  <td>
+                    <div className="cell-main">
+                      <b>{r.deleted_by || 'Unknown'}</b>
+                      {r.deleted_by_role && <Badge tone="info">{r.deleted_by_role}</Badge>}
+                    </div>
+                  </td>
+                  <td className="muted">{r.deleted_at}</td>
                   <td>{r.seller || 'N/A'}</td><td>{r.admin || 'N/A'}</td><td>{r.master || 'N/A'}</td><td>{r.super_name || 'N/A'}</td>
                   <td><Badge tone={r.paid ? 'ok' : 'warn'}>{r.paid ? 'Paid' : 'Unpaid'}</Badge></td>
                 </tr>
@@ -929,6 +980,85 @@ const ST_CLASS = s => {
   if (t.includes('not booked')) return 'warn';
   return 'no';
 };
+
+function Activity() {
+  const [f, setF] = useState({ actor: '', action: '', from: ymd(addDays(new Date(), -6)), to: ymd(new Date()), q: '' });
+  const [rows, setRows] = useState([]);
+  const [people, setPeople] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { api.downline().then(setPeople).catch(() => setPeople([])); }, []);
+
+  const load = useCallback(async (nf = f) => {
+    setBusy(true);
+    try {
+      setRows(await api.logs(nf.actor && nf.actor !== 'me' ? nf.actor : '', {
+        from: nf.from, to: nf.to, action: nf.action, q: nf.q,
+        ...(nf.actor === 'me' ? {} : {}),
+      }));
+      if (nf.actor === 'me') {
+        const mine = await api.logs('', { from: nf.from, to: nf.to, action: nf.action, q: nf.q, limit: 500 });
+        const meId = people.find(p => p.me)?.id;
+        setRows(mine.filter(l => l.actor_id === meId));
+      }
+    } catch { setRows([]); }
+    setBusy(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f, people]);
+
+  useEffect(() => { api.logs('', { from: f.from, to: f.to, limit: 300 }).then(setRows).catch(() => {}).finally(() => setLoading(false)); }, []);
+
+  const { rows: pageRows, pager } = usePaged(rows, f);
+  if (loading) return <Loader text="Activity load ho rahi hai" />;
+
+  return (
+    <>
+      <Head icon="activity" title="Activity Log" sub="Har member ki har chhoti-badi activity, IP ke saath">
+        <IconBtn icon="refresh" tip="Refresh" onClick={() => load()} disabled={busy} />
+      </Head>
+
+      <form className="card filters" onSubmit={e => { e.preventDefault(); load(); }}>
+        <div><label>Member</label><ActorPick people={people} value={f.actor} onChange={v => setF({ ...f, actor: v })} /></div>
+        <div><label>Action</label>
+          <select className="inp" value={f.action} onChange={e => setF({ ...f, action: e.target.value })}>
+            <option value="">Saari activity</option>
+            {ACT_OPTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </div>
+        <div><label>From</label><input className="inp" type="date" value={f.from} onChange={e => setF({ ...f, from: e.target.value })} /></div>
+        <div><label>To</label><input className="inp" type="date" value={f.to} onChange={e => setF({ ...f, to: e.target.value })} /></div>
+        <div className="grow"><label>Search</label>
+          <div className="field"><Icon n="search" s={15} /><input className="inp" placeholder="Naam / key / note" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} /></div>
+        </div>
+        <div className="f-btn"><button className="btn" disabled={busy}>{busy ? <>Applying <Dots /></> : <><Icon n="search" s={15} /> Apply</>}</button></div>
+      </form>
+
+      <div className="card tcard">
+        <Bar on={busy} />
+        <div className="tbl-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Member</th><th>Activity</th><th>Target</th><th>Note</th><th>IP</th></tr></thead>
+            <tbody>
+              {rows.length === 0 && <Empty cols={6} text="Is filter par koi activity nahi" />}
+              {pageRows.map(l => (
+                <tr key={l.id}>
+                  <td className="mono">{(l.created_at || '').slice(11, 19)}<br /><small className="muted">{(l.created_at || '').slice(0, 10)}</small></td>
+                  <td><div className="cell-main"><b>{l.actor || 'Unknown'}</b>{l.actor_role && <Badge tone="info">{l.actor_role}</Badge>}</div></td>
+                  <td><Badge tone={ACT_TONE[l.action] || 'info'}>{ACT_LABEL[l.action] || l.action}</Badge></td>
+                  <td>{l.target_name ? <b className="mono">{l.target_name}</b> : '-'}{l.target_role && <small className="muted"> · {l.target_role}</small>}</td>
+                  <td className="log">{l.note || '-'}</td>
+                  <td className="mono">{l.ip || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {pager}
+      </div>
+    </>
+  );
+}
 
 function Results() {
   const today = ymd(new Date());

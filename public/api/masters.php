@@ -56,7 +56,7 @@ if (isset($_GET['action'])) {
   jj(['ok'=>true]);
 }
 
-$rows = db()->query('SELECT a.id,a.username,a.pass_plain,a.role,a.status,a.per_id_rate,a.payment_due,
+$rows = db()->query('SELECT a.id,a.username,a.pass_plain,a.role,a.status,a.per_id_rate,a.created_at,a.payment_due,
   COALESCE(p.username,"-") admin,
   (SELECT COUNT(*) FROM users x WHERE x.owner_id=a.id AND x.deleted_at IS NULL AND DATE(x.created_at)=CURDATE()) today_sold,
   (SELECT COUNT(*) FROM users x WHERE x.owner_id=a.id AND x.deleted_at IS NULL) total_sold,
