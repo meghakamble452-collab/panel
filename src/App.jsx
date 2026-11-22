@@ -266,14 +266,14 @@ function useRipple() {
 }
 
 const ACT_LABEL = {
-  login: 'Login kiya', create: 'Naya member banaya', delete: 'Member delete kiya',
-  block: 'Member block kiya', activate: 'Member activate kiya', setpass: 'Password badla',
-  addpay: 'Payment add ki',
-  key_gen: 'Key generate ki', key_off: 'Key deactivate ki', key_on: 'Key activate ki',
-  key_paid: 'Key paid mark ki', key_mac: 'Key ka MAC reset kiya', key_days: 'Validity badhai',
-  key_del: 'Key delete ki',
-  bulk_off: 'Saari keys deactivate kin', bulk_on: 'Saari keys activate kin',
-  bulk_mac: 'Sabke MAC reset kiye', bulk_del_unpaid: 'Saari unpaid keys delete kin',
+  login: 'Logged in', create: 'Created member', delete: 'Deleted member',
+  block: 'Blocked member', activate: 'Activated member', setpass: 'Changed password',
+  addpay: 'Added payment',
+  key_gen: 'Generated key', key_off: 'Deactivated key', key_on: 'Activated key',
+  key_paid: 'Marked key as paid', key_mac: 'Reset key MAC', key_days: 'Extended validity',
+  key_del: 'Deleted key',
+  bulk_off: 'Deactivated all keys', bulk_on: 'Activated all keys',
+  bulk_mac: 'Reset all MACs', bulk_del_unpaid: 'Deleted all unpaid keys',
 };
 
 const ACT_TONE = {
@@ -291,11 +291,11 @@ function ActorPick({ people, value, onChange }) {
     <div className="actor-pick">
       <div className="field search sm">
         <Icon n="search" s={14} />
-        <input className="inp" placeholder="Member dhundo…" value={s} onChange={e => setS(e.target.value)} />
+        <input className="inp" placeholder="Search member…" value={s} onChange={e => setS(e.target.value)} />
       </div>
       <select className="inp" value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">Sab log</option>
-        {people.filter(p => p.me).map(p => <option key={p.id} value="me">Me ({p.username})</option>)}
+        <option value="">All members</option>
+        {people.filter(p => p.me).map(p => <option key={p.id} value="me">Me — {p.username} · {p.role}</option>)}
         {list.filter(p => !p.me).map(p => <option key={p.id} value={p.id}>{p.username} · {p.role}</option>)}
       </select>
     </div>
@@ -555,7 +555,7 @@ function Masters() {
                       onClick={() => ask(r.status === 'active' ? 'Block member?' : 'Activate member?',
                         `${r.username} ka access ${r.status === 'active' ? 'band' : 'chalu'} ho jaayega.`,
                         () => act(r.id, r.status === 'active' ? 'block' : 'activate'), r.status === 'active')} />
-                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete member?', `${r.username} permanently delete ho jaayega.`, () => act(r.id, 'delete'))} />
+                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete member?', `${r.username} will be permanently deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
@@ -567,7 +567,7 @@ function Masters() {
       {modal}{drawer}
       <Drawer open={!!hist} onClose={() => setHist(null)} title="Activity" sub={hist?.username} icon="activity">
         <div className="drawer-body">
-          {hrows.length === 0 && <p className="hint">Koi activity nahi.</p>}
+          {hrows.length === 0 && <p className="hint">No activity found.</p>}
           {hrows.map(l => (
             <div key={l.id} className="act-item">
               <span className={'act-dot ' + (ACT_TONE[l.action] || 'n')} />
@@ -656,7 +656,7 @@ function Users() {
                       onSubmit: v => act(r.id, 'adddays', '&days=' + encodeURIComponent(v)),
                     })} />
                     <IconBtn icon="rupee" tip="Mark Paid" tone="g" onClick={() => ask('Mark as paid?', 'Ye key paid mark ho jaayegi.', () => act(r.id, 'paid'), false)} />
-                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete key?', `${r.keycode} delete ho jaayegi.`, () => act(r.id, 'delete'))} />
+                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
@@ -666,12 +666,13 @@ function Users() {
         {pager}
       </div>
 
-      <Drawer open={gen} onClose={closeGen} title="Generate key" sub="Apni key khud likho, auto kuch nahi banega" icon="key">
+      <Drawer open={gen} onClose={closeGen} title="Generate key" sub="Type your own key, nothing is auto-generated" icon="key">
         <DrawerForm busy={genBusy} err={genErr} submitText="Generate" onCancel={closeGen} onSubmit={async e => {
           e.preventDefault();
           if (!f.key) { setGenErr('Key daalna zaroori hai'); return; }
+          if (!f.key) { setGenErr('Key is required'); return; }
           if (f.key.length < 10 || f.key.length > 20) {
-            setGenErr('Key 10 se 20 character ke beech honi chahiye');
+            setGenErr('Key must be between 10 and 20 characters');
             return;
           }
           setGenBusy(true); setGenErr('');
@@ -683,7 +684,7 @@ function Users() {
           <input className="inp" autoFocus value={f.key} maxLength={20} placeholder="10 se 20 character, sirf A-Z 0-9"
             onChange={e => setF({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
           <p className="hint">
-            {f.key.length}/20 character — minimum 10 chahiye. Ye key pehle se hui to error aayega.
+            {f.key.length}/20 characters — minimum 10 required. Duplicate key will show an error.
           </p>
 
           <label>Days</label>
@@ -709,7 +710,7 @@ function Deleted() {
   if (loading) return <Loader text="Deleted users load ho rahe hain" />;
   return (
     <>
-      <Head icon="trash" title="Deleted User List" sub="Kisne kaunsi key delete ki — full audit" tag={`TOTAL ${rows.length}`} />
+      <Head icon="trash" title="Deleted User List" sub="Who deleted which key — full audit trail" tag={`TOTAL ${rows.length}`} />
       <div className="toolbar">
         <ActorPick people={people} value={by} onChange={setBy} />
         <SearchBox value={q} onChange={setQ} placeholder="Search Deleted User / Key / MAC…" />
@@ -993,15 +994,9 @@ function Activity() {
   const load = useCallback(async (nf = f) => {
     setBusy(true);
     try {
-      setRows(await api.logs(nf.actor && nf.actor !== 'me' ? nf.actor : '', {
-        from: nf.from, to: nf.to, action: nf.action, q: nf.q,
-        ...(nf.actor === 'me' ? {} : {}),
-      }));
-      if (nf.actor === 'me') {
-        const mine = await api.logs('', { from: nf.from, to: nf.to, action: nf.action, q: nf.q, limit: 500 });
-        const meId = people.find(p => p.me)?.id;
-        setRows(mine.filter(l => l.actor_id === meId));
-      }
+      const meId = people.find(p => p.me)?.id;
+      const id = nf.actor === 'me' ? meId : (nf.actor || '');
+      setRows(await api.logs(id, { from: nf.from, to: nf.to, action: nf.action, q: nf.q }));
     } catch { setRows([]); }
     setBusy(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1014,7 +1009,7 @@ function Activity() {
 
   return (
     <>
-      <Head icon="activity" title="Activity Log" sub="Har member ki har chhoti-badi activity, IP ke saath">
+      <Head icon="activity" title="Activity Log" sub="Every action of every member, with IP and timestamp">
         <IconBtn icon="refresh" tip="Refresh" onClick={() => load()} disabled={busy} />
       </Head>
 
@@ -1022,7 +1017,7 @@ function Activity() {
         <div><label>Member</label><ActorPick people={people} value={f.actor} onChange={v => setF({ ...f, actor: v })} /></div>
         <div><label>Action</label>
           <select className="inp" value={f.action} onChange={e => setF({ ...f, action: e.target.value })}>
-            <option value="">Saari activity</option>
+            <option value="">All actions</option>
             {ACT_OPTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </div>
@@ -1040,7 +1035,7 @@ function Activity() {
           <table>
             <thead><tr><th>Time</th><th>Member</th><th>Activity</th><th>Target</th><th>Note</th><th>IP</th></tr></thead>
             <tbody>
-              {rows.length === 0 && <Empty cols={6} text="Is filter par koi activity nahi" />}
+              {rows.length === 0 && <Empty cols={6} text="No activity for this filter" />}
               {pageRows.map(l => (
                 <tr key={l.id}>
                   <td className="mono">{(l.created_at || '').slice(11, 19)}<br /><small className="muted">{(l.created_at || '').slice(0, 10)}</small></td>
