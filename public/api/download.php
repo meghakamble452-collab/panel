@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/guard.php';
-need();
+// public: login ke bina bhi download ho sakta hai
 if (isset($_GET['local'])) {
   $f = __DIR__.'/files/Express.zip';
   if (!file_exists($f)) { http_response_code(404); exit('Express.zip not uploaded'); }

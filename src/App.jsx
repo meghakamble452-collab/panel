@@ -349,12 +349,12 @@ export default function App() {
           ))}
         </nav>
         <div className="spacer" />
-        <a className="dl" href="/api/download.php"><span className="ni"><Icon n="down" s={17} /></span>Download Express</a>
         <div className="me">
           <div className="av">{initials(me.username)}</div>
           <div className="me-t"><b>{me.username}</b><small>{ROLE_LABEL[me.role] ?? me.role}</small></div>
           <IconBtn icon="out" tip="Logout" tone="d" onClick={async () => { await api.logout(); setMe(false); }} />
         </div>
+        <a className="dl-link" href="/api/download.php"><Icon n="down" s={15} /> Download Express</a>
       </aside>
       <main className="main">
         <header className="top">
@@ -412,6 +412,7 @@ function Login({ onDone }) {
         <button className="btn lg" style={{ width: '100%' }} disabled={busy}>
           {busy ? <>Signing in <Dots /></> : 'Login'}
         </button>
+        <a className="login-dl" href="/api/download.php">Download Express File</a>
       </form>
     </div>
   );
