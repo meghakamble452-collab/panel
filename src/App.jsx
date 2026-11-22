@@ -593,7 +593,7 @@ function Users() {
   const [loading, setLoading] = useState(true); const [doneQ, setDoneQ] = useState(null);
   const [tab, setTab] = useState('all');
   const [gen, setGen] = useState(false);
-  const [f, setF] = useState({ key: '', days: 30 });
+  const [f, setF] = useState({ key: '', days: 30, type: 'paid' });
   const [genBusy, setGenBusy] = useState(false); const [genErr, setGenErr] = useState('');
   const [ask, modal] = useConfirm();
   const [prompt, drawer] = usePrompt();
@@ -607,20 +607,21 @@ function Users() {
   const cnt = useMemo(() => ({
     active: rows.filter(r => r.active).length,
     paid: rows.filter(r => r.paid).length,
+    demo: rows.filter(r => r.key_type === 'demo').length,
   }), [rows]);
-  const list = rows.filter(r => ({ all: true, active: !!r.active, inactive: !r.active, paid: !!r.paid, unpaid: !r.paid })[tab]);
+  const list = rows.filter(r => ({ all: true, active: !!r.active, inactive: !r.active, paid: !!r.paid, unpaid: !r.paid, demo: r.key_type === 'demo' })[tab]);
   const { rows: pageRows, pager } = usePaged(list, tab + dq);
 
   if (loading) return <Loader text="Users load ho rahe hain" />;
   return (
     <>
       <Head icon="users" title="User List" sub="All software key management">
-        <button className="btn" onClick={() => { setGenErr(''); setF({ key: '', days: 30 }); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEY</button>
+        <button className="btn" onClick={() => { setGenErr(''); setF({ key: '', days: 30, type: 'paid' }); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEY</button>
       </Head>
       <div className="toolbar">
         <Tabs value={tab} onChange={setTab} items={[
           ['all', 'All', rows.length], ['active', 'Active', cnt.active], ['inactive', 'Inactive', rows.length - cnt.active],
-          ['paid', 'Paid', cnt.paid], ['unpaid', 'Unpaid', rows.length - cnt.paid],
+          ['paid', 'Paid', cnt.paid], ['unpaid', 'Unpaid', rows.length - cnt.paid], ['demo', 'Demo', cnt.demo],
         ]} />
       </div>
       <div className="toolbar">
@@ -635,9 +636,9 @@ function Users() {
         <Bar on={fetching} />
         <div className="tbl-wrap">
           <table>
-            <thead><tr><th>Key</th><th>MAC ID</th><th className="num">Validity</th><th>Active</th><th>IP</th><th>Paid</th><th>Action</th></tr></thead>
+            <thead><tr><th>Key</th><th>MAC ID</th><th className="num">Validity</th><th>Active</th><th>IP</th><th>Paid</th><th>Type</th><th>Action</th></tr></thead>
             <tbody>
-              {list.length === 0 && <Empty cols={7} />}
+              {list.length === 0 && <Empty cols={8} />}
               {pageRows.map(r => (
                 <tr key={r.id}>
                   <td><div className="cell-main"><b className="key">{r.keycode}</b><small>ID - {r.id}{r.keycode === 'NXDEV2026MASTER' && <> · <Badge tone="info">DEV</Badge></>}</small></div></td>
@@ -646,6 +647,7 @@ function Users() {
                   <td><Badge tone={r.active ? 'ok' : 'no'}>{r.active ? 'Active' : 'Inactive'}</Badge></td>
                   <td className="mono">{r.last_ip || 0}</td>
                   <td><Badge tone={r.paid ? 'ok' : 'warn'}>{r.paid ? 'Paid' : 'Unpaid'}</Badge></td>
+                  <td><Badge tone={r.key_type === 'demo' ? 'warn' : 'info'}>{r.key_type === 'demo' ? 'DEMO' : 'REAL'}</Badge></td>
                   <td><div className="acts">
                     <IconBtn icon={r.active ? 'power' : 'check'} tip={r.active ? 'Deactivate' : 'Activate'} tone={r.active ? 'w' : 'g'}
                       onClick={() => ask(r.active ? 'Deactivate key?' : 'Activate key?',
@@ -658,6 +660,17 @@ function Users() {
                       onSubmit: v => act(r.id, 'adddays', '&days=' + encodeURIComponent(v)),
                     })} />
                     <IconBtn icon="rupee" tip="Mark Paid" tone="g" onClick={() => ask('Mark as paid?', 'Ye key paid mark ho jaayegi.', () => act(r.id, 'paid'), false)} />
+                    {r.key_type === 'demo'
+                      ? <IconBtn icon="badge" tip="Make Real" tone="g" onClick={() => prompt({
+                          title: 'Make real key', sub: r.keycode, icon: 'badge', label: 'Days', type: 'number', placeholder: '30',
+                          validate: v => !v && 'Days daalo',
+                          onSubmit: v => act(r.id, 'makereal', '&days=' + encodeURIComponent(v)),
+                        })} />
+                      : <IconBtn icon="gift" tip="Make Demo" tone="w" onClick={() => prompt({
+                          title: 'Make demo key', sub: r.keycode, icon: 'gift', label: 'Days (max 90)', type: 'number', placeholder: '7',
+                          validate: v => (!v && 'Days daalo') || (+v > 90 && 'Demo max 90 din ka ho sakta hai'),
+                          onSubmit: v => act(r.id, 'makedemo', '&days=' + encodeURIComponent(v)),
+                        })} />}
                     <IconBtn icon="trash" tip={r.keycode === 'SGX9777' ? 'Developer key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'SGX9777'}
   onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
@@ -692,6 +705,12 @@ function Users() {
 
           <label>Days</label>
           <input className="inp" type="number" value={f.days} onChange={e => setF({ ...f, days: e.target.value })} />
+
+          <label>Type</label>
+          <select className="inp" value={f.type} onChange={e => setF({ ...f, type: e.target.value })}>
+            <option value="paid">Real (Paid)</option>
+            <option value="demo">Demo (max 90 din)</option>
+          </select>
         </DrawerForm>
       </Drawer>
       {modal}{drawer}
