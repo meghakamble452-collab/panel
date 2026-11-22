@@ -37,8 +37,9 @@ if (isset($_GET['action'])) {
     case 'resetmac':   db()->prepare('UPDATE users SET mac=NULL WHERE id=?')->execute([$id]); logAct($u,'key_mac',$id,$t['keycode'],'user'); break;
     case 'adddays':    $d = max(1,(int)($_GET['days'] ?? 30)); db()->prepare('UPDATE users SET days_left=days_left+? WHERE id=?')->execute([$d, $id]); logAct($u,'key_days',$id,$t['keycode'],'user',"+$d din"); break;
     case 'delete':
-      try { db()->prepare('UPDATE users SET deleted_at=NOW(), deleted_by=? WHERE id=?')->execute([(int)$u['id'], $id]); }
-      catch (Throwable $e) { db()->prepare('UPDATE users SET deleted_at=NOW() WHERE id=?')->execute([$id]); }
+      $del = db()->prepare('UPDATE users SET deleted_at=NOW(), deleted_by=? WHERE id=?');
+      $del->execute([(int)$u['id'], $id]);
+      if ($del->rowCount() < 1) jj(['error' => 'Delete fail hua — DB me deleted_at / deleted_by column check karo'], 500);
       try { db()->prepare('INSERT INTO paid_records (user_id,keycode,amount,master_id) SELECT id,keycode,0,owner_id FROM users WHERE id=?')->execute([$id]); } catch (Throwable $e) {}
       logAct($u,'key_del',$id,$t['keycode'],'user','key delete');
       break;
