@@ -546,7 +546,7 @@ function Users() {
   const [loading, setLoading] = useState(true); const [doneQ, setDoneQ] = useState(null);
   const [tab, setTab] = useState('all');
   const [gen, setGen] = useState(false);
-  const [f, setF] = useState({ count: 1, days: 30, prefix: 'EXP' });
+  const [f, setF] = useState({ count: 1, days: 30, prefix: 'EXP', key: '' });
   const [genBusy, setGenBusy] = useState(false); const [genErr, setGenErr] = useState('');
   const [ask, modal] = useConfirm();
   const [prompt, drawer] = usePrompt();
@@ -568,7 +568,7 @@ function Users() {
   return (
     <>
       <Head icon="users" title="User List" sub="All software key management">
-        <button className="btn" onClick={() => { setGenErr(''); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEYS</button>
+        <button className="btn" onClick={() => { setGenErr(''); setF({ count: 1, days: 30, prefix: 'EXP', key: '' }); setGen(true); }}><Icon n="key" s={16} /> GENERATE KEYS</button>
       </Head>
       <div className="toolbar">
         <Tabs value={tab} onChange={setTab} items={[
@@ -623,15 +623,33 @@ function Users() {
 
       <Drawer open={gen} onClose={closeGen} title="Generate keys" sub="Naye software keys banaiye" icon="key">
         <DrawerForm busy={genBusy} err={genErr} submitText="Generate" onCancel={closeGen} onSubmit={async e => {
-          e.preventDefault(); setGenBusy(true); setGenErr('');
+          e.preventDefault();
+          if (f.key && (f.key.length < 10 || f.key.length > 20)) {
+            setGenErr('Custom key 10 se 20 character ke beech honi chahiye');
+            return;
+          }
+          setGenBusy(true); setGenErr('');
           try { await api.addUsers(f); await reload(); setGen(false); }
           catch (x) { setGenErr(x.message); }
           setGenBusy(false);
         }}>
-          <label>Count</label><input className="inp" type="number" value={f.count} onChange={e => setF({ ...f, count: e.target.value })} />
-          <label>Days</label><input className="inp" type="number" value={f.days} onChange={e => setF({ ...f, days: e.target.value })} />
-          <label>Prefix</label><input className="inp" value={f.prefix} onChange={e => setF({ ...f, prefix: e.target.value })} />
-          <p className="hint">{f.count || 0} key(s) banengi, {f.days || 0} din ki validity ke saath.</p>
+          <label>Count</label>
+          <input className="inp" type="number" value={f.count} disabled={!!f.key} onChange={e => setF({ ...f, count: e.target.value })} />
+
+          <label>Days</label>
+          <input className="inp" type="number" value={f.days} onChange={e => setF({ ...f, days: e.target.value })} />
+
+          <label>Prefix</label>
+          <input className="inp" value={f.prefix} disabled={!!f.key} onChange={e => setF({ ...f, prefix: e.target.value })} />
+
+          <label>Custom key (optional)</label>
+          <input className="inp" value={f.key} maxLength={20} placeholder="10 se 20 character, sirf A-Z 0-9"
+            onChange={e => setF({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
+          <p className="hint">
+            {f.key
+              ? `${f.key.length}/20 character — sirf 1 key banegi. Key pehle se hui to error aayega.`
+              : `${f.count || 0} key(s) auto banengi, ${f.days || 0} din ki validity ke saath.`}
+          </p>
         </DrawerForm>
       </Drawer>
       {modal}{drawer}

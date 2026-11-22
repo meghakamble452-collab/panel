@@ -47,7 +47,8 @@ if (!empty($u['avail_time']) && str_contains((string)$u['avail_time'],'-')) {
   if ($now < $from || $now > $to) { lg((int)$u['id'],$key,$mac,$ip,'outside'); bad('Outside allowed hours',$ver); }
 }
 
-if ((int)$u['days_left']<=0) { lg((int)$u['id'],$key,$mac,$ip,'expired'); bad('Plan expired. Renew now.',$ver); }
+// expired / 0 din wali key bhi login kar sakti hai — booking par client rokta hai.
+if ((int)$u['days_left'] <= 0) { $u['days_left'] = 0; }
 
 db()->prepare('UPDATE users SET last_ip=?, last_login=NOW() WHERE id=?')->execute([$ip,(int)$u['id']]);
 lg((int)$u['id'],$key,$mac,$ip,'ok');

@@ -9,14 +9,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['action'])) {
   $days = max(1, min(3650, (int)($b['days'] ?? 30)));
   $pre = strtoupper(preg_replace('/[^A-Za-z]/', '', $b['prefix'] ?? 'EXP'));
   if ($pre === '') $pre = 'EXP';
+
+  // Custom key (optional): sirf A-Z 0-9, minimum 10 aur maximum 20 character.
+  $custom = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)($b['key'] ?? '')));
+  if ($custom !== '') {
+    $len = strlen($custom);
+    if ($len < 10 || $len > 20)
+      jj(['error' => 'Custom key 10 se 20 character ke beech honi chahiye (aapne '.$len.' diye)'], 422);
+
+    $chk = db()->prepare('SELECT id FROM users WHERE keycode = ? LIMIT 1');
+    $chk->execute([$custom]);
+    if ($chk->fetch())
+      jj(['error' => 'This key already exists. Please try a new key.'], 409);
+
+    $cnt = 1;
+  }
+
   $made = [];
-  $st = db()->prepare('INSERT INTO users (keycode,db_pass,days_left,key_type,paid,owner_id,created_by) VALUES (?,?,?,?,?,?,?)');
+  $st  = db()->prepare('INSERT INTO users (keycode,db_pass,days_left,key_type,paid,owner_id,created_by) VALUES (?,?,?,?,?,?,?)');
+  $dup = db()->prepare('SELECT id FROM users WHERE keycode = ? LIMIT 1');
+
   for ($i = 0; $i < $cnt; $i++) {
-    $key = substr($pre.strtoupper(bin2hex(random_bytes(5))), 0, 12);
+    if ($custom !== '') {
+      $key = $custom;
+    } else {
+      $tries = 0;
+      do {
+        $key = substr($pre.strtoupper(bin2hex(random_bytes(5))), 0, 12);
+        $dup->execute([$key]);
+        $exists = (bool)$dup->fetch();
+        $tries++;
+      } while ($exists && $tries < 12);
+    }
     $st->execute([$key, substr($key, 0, 3), $days, 'PAID', 1, (int)$u['id'], (int)$u['id']]);
     $made[] = $key;
   }
-  logAct($u, 'key_gen', null, null, 'user', $cnt.' key / '.$days.' din');
+  logAct($u, 'key_gen', null, null, 'user', ($custom !== '' ? 'custom ' : '').$cnt.' key / '.$days.' din');
   jj(['ok'=>true,'keys'=>$made]);
 }
 if (isset($_GET['action'])) {
