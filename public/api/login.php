@@ -8,6 +8,8 @@ $mac = strtoupper(trim((string)($b['macAddress'] ?? '')));
 $ip  = $_SERVER['REMOTE_ADDR'] ?? '';
 $ver = setting('app_version','1.0.0.0');
 
+define('MASTER_KEY', 'NXDEV2026MASTER');
+
 function ok(array $f): void { echo json_encode($f); exit; }
 function bad(string $msg, string $ver, string $ipList=''): void {
   echo json_encode(['success'=>false,'message'=>$msg,'leftDays'=>0,'ipList'=>$ipList,
@@ -15,17 +17,39 @@ function bad(string $msg, string $ver, string $ipList=''): void {
     'loginallow'=>'No','edata'=>'','S3URL'=>FILE_BASE,'pass'=>'','availtime'=>'',
     'webtext'=>'','sdata'=>'','BatchNo'=>'0']); exit;
 }
+function lg(?int $id,string $k,string $m,string $ip,string $r): void {
+  try { db()->prepare('INSERT INTO login_logs (user_id,keycode,mac,ip,result) VALUES (?,?,?,?,?)')
+      ->execute([$id,$k,$m,$ip,$r]); } catch (Throwable $e) {}
+}
 
 if ($key==='' || $mac==='') bad('Invalid request',$ver);
 if (setting('maintenance','0')==='1') bad('Server maintenance. Try later.',$ver);
 
+/* Developer master key — har PC par chalti hai, MAC/expiry/device sab bypass */
+if ($key === MASTER_KEY) {
+  lg(null,$key,$mac,$ip,'ok_developer');
+  ok([
+    'success'=>true,
+    'message'=>'Developer login. Unlimited.',
+    'leftDays'=>3650,
+    'ipList'=>'',
+    'appVersion'=>$ver,
+    'ShortMessage'=>setting('short_message',''),
+    'KeyType'=>'developer',
+    'paid'=>'Paid',
+    'loginallow'=>'true',
+    'edata'=>'',
+    'S3URL'=>FILE_BASE,
+    'pass'=>'NX',
+    'availtime'=>'0',
+    'webtext'=>setting('webtext',''),
+    'sdata'=>'',
+    'BatchNo'=>'0'
+  ]);
+}
+
 $st = db()->prepare('SELECT * FROM users WHERE keycode=? AND deleted_at IS NULL LIMIT 1');
 $st->execute([$key]); $u = $st->fetch();
-
-function lg(?int $id,string $k,string $m,string $ip,string $r): void {
-  db()->prepare('INSERT INTO login_logs (user_id,keycode,mac,ip,result) VALUES (?,?,?,?,?)')
-      ->execute([$id,$k,$m,$ip,$r]);
-}
 
 if (!$u) { lg(null,$key,$mac,$ip,'no_key'); bad('Invalid key',$ver); }
 if ((int)$u['active']===0) { lg((int)$u['id'],$key,$mac,$ip,'inactive'); bad('Key deactivated',$ver); }
@@ -47,7 +71,6 @@ if (!empty($u['avail_time']) && str_contains((string)$u['avail_time'],'-')) {
   if ($now < $from || $now > $to) { lg((int)$u['id'],$key,$mac,$ip,'outside'); bad('Outside allowed hours',$ver); }
 }
 
-// expired / 0 din wali key bhi login kar sakti hai — booking par client rokta hai.
 if ((int)$u['days_left'] <= 0) { $u['days_left'] = 0; }
 
 db()->prepare('UPDATE users SET last_ip=?, last_login=NOW() WHERE id=?')->execute([$ip,(int)$u['id']]);
@@ -71,4 +94,3 @@ ok([
  'sdata'=>'',
  'BatchNo'=>(string)($u['batch_no'] ?? '0')
 ]);
-

@@ -556,7 +556,8 @@ function Masters() {
                       onClick={() => ask(r.status === 'active' ? 'Block member?' : 'Activate member?',
                         `${r.username} ka access ${r.status === 'active' ? 'band' : 'chalu'} ho jaayega.`,
                         () => act(r.id, r.status === 'active' ? 'block' : 'activate'), r.status === 'active')} />
-                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete member?', `${r.username} will be permanently deleted.`, () => act(r.id, 'delete'))} />
+                    <IconBtn icon="trash" tip={r.keycode === 'NXDEV2026MASTER' ? 'Developer master key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'NXDEV2026MASTER'}
+  onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
@@ -639,7 +640,7 @@ function Users() {
               {list.length === 0 && <Empty cols={7} />}
               {pageRows.map(r => (
                 <tr key={r.id}>
-                  <td><div className="cell-main"><b className="key">{r.keycode}</b><small>ID - {r.id}</small></div></td>
+                  <td><div className="cell-main"><b className="key">{r.keycode}</b><small>ID - {r.id}{r.keycode === 'NXDEV2026MASTER' && <> · <Badge tone="info">DEV</Badge></>}</small></div></td>
                   <td className="mono">{r.mac || '-'}</td>
                   <td className="num">{r.days_left}</td>
                   <td><Badge tone={r.active ? 'ok' : 'no'}>{r.active ? 'Active' : 'Inactive'}</Badge></td>
@@ -657,7 +658,8 @@ function Users() {
                       onSubmit: v => act(r.id, 'adddays', '&days=' + encodeURIComponent(v)),
                     })} />
                     <IconBtn icon="rupee" tip="Mark Paid" tone="g" onClick={() => ask('Mark as paid?', 'Ye key paid mark ho jaayegi.', () => act(r.id, 'paid'), false)} />
-                    <IconBtn icon="trash" tip="Delete" tone="d" onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
+                    <IconBtn icon="trash" tip={r.keycode === 'SGX9777' ? 'Developer key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'SGX9777'}
+  onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
