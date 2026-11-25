@@ -84,7 +84,7 @@ ok([
  'appVersion'=>$ver,
  'ShortMessage'=>setting('short_message',''),
  'KeyType'=>$u['key_type'],
- 'paid'=>((int)$u['paid']===1?'Paid':'Unpaid'),
+ 'paid'=>(((int)$u['paid']===1 || ($u['key_type'] ?? '')==='demo') ? 'Paid' : 'Unpaid'),
  'loginallow'=>'true',
  'edata'=>'',
  'S3URL'=>FILE_BASE,

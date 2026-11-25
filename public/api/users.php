@@ -16,15 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['action'])) {
 
   if ($type === 'demo') $days = max(1, min(90, $days));
 
-  if ($len < 10 || $len > 20)
-    jj(['error' => 'Key 10 se 20 character ke beech honi chahiye (aapne '.$len.' diye)'], 422);
+  if ($len < 5 || $len > 20)
+    jj(['error' => 'Key 5 se 20 character ke beech honi chahiye (aapne '.$len.' diye)'], 422);
 
   $chk = db()->prepare('SELECT id FROM users WHERE keycode = ? LIMIT 1');
   $chk->execute([$key]);
   if ($chk->fetch()) jj(['error' => 'This key already exists. Please try a new key.'], 409);
 
   db()->prepare('INSERT INTO users (keycode,db_pass,days_left,key_type,paid,owner_id,created_by) VALUES (?,?,?,?,?,?,?)')
-      ->execute([$key, substr($key, 0, 3), $days, $type === 'demo' ? 'demo' : 'PAID', $type === 'demo' ? 0 : 1, (int)$u['id'], (int)$u['id']]);
+      ->execute([$key, substr($key, 0, 3), $days, $type === 'demo' ? 'demo' : 'PAID', 1, (int)$u['id'], (int)$u['id']]);
 
   logAct($u, 'key_gen', null, $key, 'user', ($type === 'demo' ? 'DEMO ' : '') . $days . ' din validity');
   jj(['ok'=>true, 'keys'=>[$key]]);
@@ -47,8 +47,11 @@ if (isset($_GET['action'])) {
 
     case 'makedemo':
       $d = max(1, min(90, (int)($_GET['days'] ?? 7)));
-      db()->prepare("UPDATE users SET key_type='demo', paid=0, days_left=? WHERE id=?")->execute([$d, $id]);
+      db()->prepare("UPDATE users SET key_type='demo', paid=1, days_left=? WHERE id=?")->execute([$d, $id]);
       logAct($u,'key_demo',$id,$t['keycode'],'user',$d.' din demo'); break;
+
+      case 'adddays':
+    case 'renew':      $d = max(1,(int)($_GET['days'] ?? 30)); db()->prepare('UPDATE users SET days_left=days_left+? WHERE id=?')->execute([$d, $id]); logAct($u,'key_days',$id,$t['keycode'],'user',"+$d din"); break;
 
     case 'makereal':
       $d = max(1, (int)($_GET['days'] ?? 30));

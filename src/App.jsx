@@ -273,7 +273,7 @@ const ACT_LABEL = {
   key_paid: 'Marked key as paid', key_mac: 'Reset key MAC', key_days: 'Extended validity',
   key_del: 'Deleted key',
   bulk_off: 'Deactivated all keys', bulk_on: 'Activated all keys',
-  bulk_mac: 'Reset all MACs', bulk_del_unpaid: 'Deleted all unpaid keys',
+  bulk_mac: 'Reset all MACs', bulk_del_unpaid: 'Deleted all unpaid keys', app_version: 'Changed app version',
 };
 
 const ACT_TONE = {
@@ -435,6 +435,7 @@ function Dashboard({ me }) {
   const [d, setD] = useState(null);
   useEffect(() => { api.dash().then(setD).catch(() => setD({})); }, []);
   if (!d) return <Loader text="Dashboard load ho raha hai" />;
+  {me.role === 'developer' && <VerCard />}
   return (
     <>
       <Head icon="dash" title="Dashboard" sub={`Welcome back, ${me.username} — here's what's happening today`} />
@@ -448,6 +449,26 @@ function Dashboard({ me }) {
         ))}
       </div>
     </>
+  );
+}
+
+function VerCard() {
+  const [v, setV] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  useEffect(() => { api.appver().then(d => setV(d.version)).catch(() => {}); }, []);
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <label>App Version — sab users ko yahi version milega (isi par update trigger hota hai)</label>
+      <div className="row" style={{ marginTop: 8 }}>
+        <input className="inp" value={v} onChange={e => setV(e.target.value)} placeholder="1.0.0.0" style={{ maxWidth: 200 }} />
+        <button className="btn" disabled={busy} onClick={async () => {
+          setBusy(true); setMsg('');
+          try { await api.setAppver(v); setMsg('Saved: ' + v); } catch (x) { setMsg(x.message); }
+          setBusy(false);
+        }}>Save Version</button>
+        {msg && <span className="flash ok">{msg}</span>}
+      </div>
+      <p className="hint">Badalne ke baad naye build ko panel se update kar dena. User ke login label par usका local version hi dikhega.</p>
+    </div>
   );
 }
 
@@ -687,8 +708,8 @@ function Users() {
           e.preventDefault();
           if (!f.key) { setGenErr('Key daalna zaroori hai'); return; }
           if (!f.key) { setGenErr('Key is required'); return; }
-          if (f.key.length < 10 || f.key.length > 20) {
-            setGenErr('Key must be between 10 and 20 characters');
+          if (f.key.length < 5 || f.key.length > 20) {
+            setGenErr('Key must be between 5 and 20 characters');
             return;
           }
           setGenBusy(true); setGenErr('');
@@ -697,10 +718,10 @@ function Users() {
           setGenBusy(false);
         }}>
           <label>Key *</label>
-          <input className="inp" autoFocus value={f.key} maxLength={20} placeholder="10 se 20 character, sirf A-Z 0-9"
+          <input className="inp" autoFocus value={f.key} maxLength={20} placeholder="5 se 20 character, sirf A-Z 0-9"
             onChange={e => setF({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
           <p className="hint">
-            {f.key.length}/20 characters — minimum 10 required. Duplicate key will show an error.
+            {f.key.length}/20 characters — minimum 5 required. Duplicate key will show an error.
           </p>
 
           <label>Days</label>

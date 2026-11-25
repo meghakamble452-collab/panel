@@ -33,6 +33,8 @@ export const api = {
   payments:() => req('/payments.php'),
   addPay: b => req('/payments.php', { method:'POST', body: JSON.stringify(b) }),
   paid:   q => req(`/paid.php?q=${encodeURIComponent(q||'')}`).then(arr),
+  appver:    () => req('/appver.php'),
+  setAppver: v  => req('/appver.php', { method:'POST', body: JSON.stringify({ version: v }) }),
   results: p => req(`/activities.php?from=${p.from}&to=${p.to}&q=${encodeURIComponent(p.q||'')}&status=${encodeURIComponent(p.status||'')}&gateway=${encodeURIComponent(p.gateway||'')}`).then(d => d),
   logs: (id, p = {}) => {
     const s = new URLSearchParams({ ...(id ? { id } : {}), ...p }).toString();
