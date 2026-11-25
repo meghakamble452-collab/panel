@@ -50,7 +50,6 @@ if (isset($_GET['action'])) {
       db()->prepare("UPDATE users SET key_type='demo', paid=1, days_left=? WHERE id=?")->execute([$d, $id]);
       logAct($u,'key_demo',$id,$t['keycode'],'user',$d.' din demo'); break;
 
-      case 'adddays':
     case 'renew':      $d = max(1,(int)($_GET['days'] ?? 30)); db()->prepare('UPDATE users SET days_left=days_left+? WHERE id=?')->execute([$d, $id]); logAct($u,'key_days',$id,$t['keycode'],'user',"+$d din"); break;
 
     case 'makereal':
