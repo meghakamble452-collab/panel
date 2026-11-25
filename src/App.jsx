@@ -437,7 +437,7 @@ function Dashboard({ me }) {
   if (!d) return <Loader text="Dashboard load ho raha hai" />;
   return (
     <>
-      {me.role === 'developer' && <VerCard />}
+    {me.role === 'developer' && <VerCard />}
       <Head icon="dash" title="Dashboard" sub={`Welcome back, ${me.username} — here's what's happening today`} />
       {d.notice && <div className="notice"><span className="notice-ico"><Icon n="alert" s={17} /></span><div><b>महत्वपूर्ण सूचना:</b> {d.notice}</div></div>}
       <div className="grid">
@@ -454,7 +454,7 @@ function Dashboard({ me }) {
 
 function VerCard() {
   const [v, setV] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  useEffect(() => { api.appver().then(d => setV(d.version)).catch(() => { }); }, []);
+  useEffect(() => { api.appver().then(d => setV(d.version)).catch(() => {}); }, []);
   return (
     <div className="card" style={{ marginTop: 16 }}>
       <label>App Version — sab users ko yahi version milega (isi par update trigger hota hai)</label>
@@ -578,7 +578,7 @@ function Masters() {
                         `${r.username} ka access ${r.status === 'active' ? 'band' : 'chalu'} ho jaayega.`,
                         () => act(r.id, r.status === 'active' ? 'block' : 'activate'), r.status === 'active')} />
                     <IconBtn icon="trash" tip={r.keycode === 'NXDEV2026MASTER' ? 'Developer master key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'NXDEV2026MASTER'}
-                      onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
+  onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
@@ -675,25 +675,25 @@ function Users() {
                         `${r.keycode} ${r.active ? 'band' : 'chalu'} ho jaayegi.`,
                         () => act(r.id, r.active ? 'deactivate' : 'activate'), !!r.active)} />
                     <IconBtn icon="reset" tip="Reset MAC" onClick={() => ask('Reset MAC?', 'Is key ka device unbind hoga, naye PC par login kar sakte hain.', () => act(r.id, 'resetmac'), false)} />
-                    <IconBtn icon="calplus" tip="Add Days" onClick={() => prompt({
-                      title: 'Add days', sub: r.keycode, icon: 'calplus', label: 'Days', type: 'number', placeholder: '30',
+                    <IconBtn icon="calplus" tip="Renew" onClick={() => prompt({
+                      title: 'Renew key', sub: r.keycode, icon: 'calplus', label: 'Days', type: 'number', placeholder: '30',
                       validate: v => !v && 'Days daalo',
-                      onSubmit: v => act(r.id, 'adddays', '&days=' + encodeURIComponent(v)),
+                      onSubmit: v => act(r.id, 'renew', '&days=' + encodeURIComponent(v)),
                     })} />
                     <IconBtn icon="rupee" tip="Mark Paid" tone="g" onClick={() => ask('Mark as paid?', 'Ye key paid mark ho jaayegi.', () => act(r.id, 'paid'), false)} />
                     {r.key_type === 'demo'
                       ? <IconBtn icon="badge" tip="Make Real" tone="g" onClick={() => prompt({
-                        title: 'Make real key', sub: r.keycode, icon: 'badge', label: 'Days', type: 'number', placeholder: '30',
-                        validate: v => !v && 'Days daalo',
-                        onSubmit: v => act(r.id, 'makereal', '&days=' + encodeURIComponent(v)),
-                      })} />
+                          title: 'Make real key', sub: r.keycode, icon: 'badge', label: 'Days', type: 'number', placeholder: '30',
+                          validate: v => !v && 'Days daalo',
+                          onSubmit: v => act(r.id, 'makereal', '&days=' + encodeURIComponent(v)),
+                        })} />
                       : <IconBtn icon="gift" tip="Make Demo" tone="w" onClick={() => prompt({
-                        title: 'Make demo key', sub: r.keycode, icon: 'gift', label: 'Days (max 90)', type: 'number', placeholder: '7',
-                        validate: v => (!v && 'Days daalo') || (+v > 90 && 'Demo max 90 din ka ho sakta hai'),
-                        onSubmit: v => act(r.id, 'makedemo', '&days=' + encodeURIComponent(v)),
-                      })} />}
+                          title: 'Make demo key', sub: r.keycode, icon: 'gift', label: 'Days (max 90)', type: 'number', placeholder: '7',
+                          validate: v => (!v && 'Days daalo') || (+v > 90 && 'Demo max 90 din ka ho sakta hai'),
+                          onSubmit: v => act(r.id, 'makedemo', '&days=' + encodeURIComponent(v)),
+                        })} />}
                     <IconBtn icon="trash" tip={r.keycode === 'NXDEV2026MASTER' ? 'Developer master key — delete nahi hoti' : 'Delete'} tone="d" disabled={r.keycode === 'NXDEV2026MASTER'}
-                      onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
+  onClick={() => ask('Delete key?', `${r.keycode} will be deleted.`, () => act(r.id, 'delete'))} />
                   </div></td>
                 </tr>
               ))}
@@ -1045,7 +1045,7 @@ function Activity() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [f, people]);
 
-  useEffect(() => { api.logs('', { from: f.from, to: f.to, limit: 300 }).then(setRows).catch(() => { }).finally(() => setLoading(false)); }, []);
+  useEffect(() => { api.logs('', { from: f.from, to: f.to, limit: 300 }).then(setRows).catch(() => {}).finally(() => setLoading(false)); }, []);
 
   const { rows: pageRows, pager } = usePaged(rows, f);
   if (loading) return <Loader text="Activity load ho rahi hai" />;
@@ -1112,7 +1112,7 @@ function Results() {
   };
   // initial fetch (no synchronous setState inside the effect)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { api.results(f).then(setD).catch(() => { }).finally(() => setLoading(false)); }, []);
+  useEffect(() => { api.results(f).then(setD).catch(() => {}).finally(() => setLoading(false)); }, []);
   const rows = Array.isArray(d.rows) ? d.rows : [];
   const { rows: pageRows, pager } = usePaged(rows, d);
 
