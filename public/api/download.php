@@ -10,4 +10,4 @@ if (isset($_GET['local'])) {
   readfile($f);
   exit;
 }
-header('Location: https://gofile.io/d/2XBWphu5', true, 302);
+header('Location: https://gofile.io/d/kl6gAyXA', true, 302);
